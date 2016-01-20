@@ -35,11 +35,12 @@
 ;    push( expand op , goal-stack )
 ;    push-all( expand (:post op), goal-stack )
 
-(defn ui-out [tag msg t]
-  (println tag \tab msg))
 
-(defn ui-out [tag msg]
-  (println tag \tab msg))
+(defn ui-out
+[tag msg & r]
+(println tag \tab msg \t r)
+)
+
 
 
 
@@ -47,9 +48,9 @@
   (if (not (empty? q))
     (do
       (ui-out :dbg "GOALS:")
-;      (doseq [x q]
-;        (ui-out :dbg "      " (if (map? x) [(:name x) :=> (:achieves x)] x))
-;        )
+      (doseq [x q]
+        (ui-out :dbg "      " (if (map? x) [(:name x) :=> (:achieves x)] x))
+        )
       (ui-out :dbg '------)
       )
     ))
@@ -61,7 +62,7 @@
 (declare strips-loop update-path
   goal-mop-apply apply-goal-op)
 
-(defn planner [state goal goal-ops]
+(deftrace planner [state goal goal-ops]
   (.clear @goalq)
   (.push @goalq goal)
   (strips-loop {:state state, :cmds nil, :txt nil} goal-ops 60))
