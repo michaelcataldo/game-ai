@@ -62,7 +62,7 @@
 (declare strips-loop update-path
   goal-mop-apply apply-goal-op)
 
-(deftrace planner [state goal goal-ops]
+(defn planner [state goal goal-ops]
   (.clear @goalq)
   (.push @goalq goal)
   (strips-loop {:state state, :cmds nil, :txt nil} goal-ops 60))
