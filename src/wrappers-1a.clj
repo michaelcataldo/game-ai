@@ -82,28 +82,28 @@
 ;      (.append (win @uiwin) "\n")
 ;      )))
 
-(defn ui-out
-  [win & r]
-  (if-not win-mode (apply println r)
-   ;; (let [[win & r] r]
-    (do
-      (doseq [x r]
-        (cond
-          (nil? x)
-          (.append (win @uiwin) "nil")
-
-          (coll? x)
-          (.append (win @uiwin) (write x :stream nil))
-
-          (symbol? x)
-          (.append (win @uiwin) (str x))
-
-          :else
-          (.append (win @uiwin) x)
-          )
-        (.append (win @uiwin) " "))
-      (.append (win @uiwin) "\n")
-      )))
+;(defn ui-out
+;  [win & r]
+;  (if-not win-mode (apply println r)
+;   ;; (let [[win & r] r]
+;    (do
+;      (doseq [x r]
+;        (cond
+;          (nil? x)
+;          (.append (win @uiwin) "nil")
+;
+;          (coll? x)
+;          (.append (win @uiwin) (write x :stream nil))
+;
+;          (symbol? x)
+;          (.append (win @uiwin) (str x))
+;
+;          :else
+;          (.append (win @uiwin) x)
+;          )
+;        (.append (win @uiwin) " "))
+;      (.append (win @uiwin) "\n")
+;      )))
 
 
 (defn ui-broadcast [stuff]
@@ -182,12 +182,12 @@
 
 ;___ netlogo reading/writing _____________
 
-(defn set-shrdlu-comms [port]
-  (def shrdlu-comms (startup-server port)))
+(defn setup-socket [port]
+  (def socket (startup-server port)))
 
 (defn nlogo-send [txt]
   ;(println '** (and shrdlu-comms true) txt)
-  (if shrdlu-comms (socket-write shrdlu-comms txt)))
+  (if socket (socket-write socket txt)))
 
 (defn nlogo-read []
   (if shrdlu-comms (socket-read shrdlu-comms)))
@@ -198,13 +198,19 @@
 
 (declare nlogo-translate-cmd)
 
-(defn nlogo-send-exec [cmd-list]
-  ; (ui-out :comm 'NL==> cmd-list)
-  (let [cmd-str (nlogo-translate-cmd cmd-list)]
-    (ui-out :comm 'NL==> cmd-list "   \t" cmd-str)
+(defn nlogo-send-exec [cmd]
+  (let [cmd-str (nlogo-translate-cmd cmd)]
+    ;(ui-out :comm 'NL==> cmd-list "   \t" cmd-str)
     ; (ui-out :comm "     " cmd-str)
-    (nlogo-send cmd-str)
+    (println  cmd-str)
+    ;(nlogo-send cmd-str)
     ))
+
+(defn nlogo-send-cmds [cmd-list]
+  (dotimes [c (count cmd-list)]
+    (nlogo-send-exec (nth cmd-list c))
+    )
+  )
 
 ;user=> (def s25 (startup-server 2222))
 ;advertising  #<ServerSocket ServerSocket[addr=0.0.0.0/0.0.0.0,port=0,localport=2225]>
