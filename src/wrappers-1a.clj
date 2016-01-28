@@ -203,7 +203,7 @@
     ;(ui-out :comm 'NL==> cmd-list "   \t" cmd-str)
     ; (ui-out :comm "     " cmd-str)
     (println  cmd-str)
-    ;(nlogo-send cmd-str)
+    (nlogo-send cmd-str)
     ))
 
 (defn nlogo-send-cmds [cmd-list]

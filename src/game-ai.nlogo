@@ -2,12 +2,13 @@ extensions [ table sock2 ]
 globals
 [
   world.size  ;;square world dictated by clojure side
-
+  world.baseloc
+  
   cmd-stack        ; stack (kinda) of commands for execution
   cmd-rules        ; rules for cmd expansion & execution
-
+  
   agent-map
-output-indent
+  output-indent
 ]
 
 breed [harvesters harvester]
@@ -19,11 +20,18 @@ collectors-own [name]
 breed [engineers engineer]
 engineers-own [name]
 
+breed [resources resource]
+resources-own [name]
+
+breed [bases base]
+bases-own [name]
+
+
 to globals.setup
-  set-patch-size 50
-
+  set-patch-size 25
+  
   set cmd-stack ""
-
+  
 end
 
 ;------------------------------------
@@ -40,7 +48,6 @@ end
 to setup
   clear-all
   globals.setup
-  patches.setup
   reset-ticks
 end
 
@@ -52,44 +59,81 @@ end
 
 
 to world.set-size [#size]
-    set world.size #size
-    resize-world  0 #size 0 #size
-    ask patches [ set pcolor grey]
+  set world.size #size
+  resize-world  0 #size 0 #size
+  ask patches [ set pcolor green]
 end
 
 to world.create-agent [#id #tile #atype]
   let #a 0
-  ifelse #atype = "H"
+  ifelse #atype = "h"
   [
     create-harvesters 1
     [
       set name #id
-      set color brown
+      set shape "person lumberjack"
+      set color 29
+  
       setxy get-tile-x #tile get-tile-y #tile
       set #a self  ;; for animation below
     ]
   ]
-  [ ifelse #atype = "C"
+  [ ifelse #atype = "c"
     [ create-collectors 1
       [
-         set name #id
-        set color blue
-         setxy get-tile-x #tile get-tile-y #tile
-          set #a self  ;; for animation below
+        set name #id
+        set shape "person service"
+        set color 29
+        setxy get-tile-x #tile get-tile-y #tile
+        set #a self  ;; for animation below
       ]
     ]
     [
       create-engineers 1
       [
-         set name #id
-        set color red
-         setxy get-tile-x #tile get-tile-y #tile
-          set #a self  ;; for animation below
+        set name #id
+        set shape "person construction"
+        set color 29
+        setxy get-tile-x #tile get-tile-y #tile
+        set #a self  ;; for animation below
       ]
     ]
-
+  
   ]
-   ask #a [st]
+  ask #a [st]
+end
+
+to world.create-resource [#id #loc]
+  create-resources 1
+  [
+    set name #id
+    set shape "tree"
+    set color 63
+    set size 1.3
+    setxy get-tile-x #loc get-tile-y #loc
+  ]
+end
+
+
+to world.create-base [#id #loc] 
+  create-bases 1
+  [
+    set name #id
+    set shape "house"
+    set color 26
+    set size 1.3
+    setxy get-tile-x #loc get-tile-y #loc
+  ]
+end
+
+to world.create-lake [#id #loc]
+  let x (get-tile-x #loc)
+  let y (get-tile-y #loc)
+  ask patches with [pxcor = x and pycor = y]
+    [
+      set pcolor blue
+    ]
+
 end
 
 ;------------------------------------
@@ -97,50 +141,96 @@ end
 ;------------------------------------
 
 to patches.setup
-  ask patches [ set pcolor grey]
- end
+  ask patches [ set pcolor green]
+end
 
 ;------------------------------------
 ; agents
 ;------------------------------------
 
 
-
+;;move agent to passed destination tile id
 to agent.move-to [#dest #agent]
-
-  let tileIndex read-from-string substring #dest 1 length #dest
-
-  let x tileIndex mod world.size
-  let y tileIndex / world.size
-
-  ask turtles with [name = #agent]
-  [
-    set color green
-    ]
-
-end
-
-
-
-
-
-  to prepare-helper
-    agent.prepare one-of turtles
-  end
-
-to agent.prepare [agent]
-  ask agent [
-  let i 0
-  loop [
-    set i i + 1
-    lt 45
-    rt 90
-    lt 45
-    if i = 2 [stop]
+  let x (get-tile-x #dest)
+  let y (get-tile-y #dest)
+  
+  let agentPatch 0
+  ask patches with [pxcor = x and pycor = y][
+    let destPatch self
+    print destPatch
+    loop [
+      ask turtles with [name = #agent] [
+        set agentPatch patch-here
+        facexy x y
+        forward 1 
+      ]
+      
+      if agentPatch = destPatch [stop]
     ]
   ]
 end
 
+to agent.pickup [#res #agent]
+  ask resources with [name = #res] [
+    let res self
+    
+    ask turtles with [name = #agent] [
+      
+      create-link-to res  
+      [ tie
+        hide-link
+      ]
+    ]
+  ]
+end
+
+to agent.drop [#res #agent #loc]
+  ask resources with [name = #res] [
+    let res self
+    
+    ask turtles with [name = #agent] [
+      ask one-of links [die]
+    ]
+    
+    setxy (get-tile-x #loc) (get-tile-y #loc)
+  ]
+end
+
+to agent.prepare [#res #agent]
+   ask resources with [name = #res] [
+     set shape "logs"
+     set color brown
+     set size 0.85
+   ]
+end
+
+to agent.store [#res #agent #base-id]
+  
+   agent.drop #res #agent #base-id
+   ask resources with [name = #res] [
+     set shape "crate"
+     set color brown
+     set size 0.85
+   ]
+end
+
+
+to agent.build [#agent #tile]
+  let x (get-tile-x #tile)
+  let y (get-tile-y #tile)
+  
+    ask turtles with [name = #agent] [
+      ask out-link-neighbors [die]
+      
+      
+      ask patches with [pxcor = x and pycor = y]
+      [
+        set pcolor 35
+      ]
+    ]
+    
+  
+end
 
 ;======================================================
 ; CMD-STACK manipulation
@@ -238,17 +328,17 @@ end
 
 to-report get-tile-x [#t]
   let tileIndex read-from-string substring #t 1 length #t
-
+  
   let x tileIndex mod world.size
-
-   report x
+  
+  report x
 end
 
 to-report get-tile-y [#t]
   let tileIndex read-from-string substring #t 1 length #t
-
+  
   let y floor (tileIndex / world.size)
-
+  
   report  y
 end
 
@@ -258,7 +348,10 @@ to exec.repl
   let cmd-str sock2:read
   output-print (word "received: " cmd-str)
   run cmd-str
+  output-print "-done"
+  wait 0.1
   tick
+  output-print "-finally"
 end
 
 to flush-io
@@ -269,26 +362,26 @@ to flush-io
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-274
-47
-784
-578
+172
+13
+607
+469
 -1
 -1
-50.0
+25.0
 1
 10
 1
 1
 1
 0
-1
-1
+0
+0
 1
 0
-9
+16
 0
-9
+16
 0
 0
 1
@@ -296,10 +389,10 @@ ticks
 30.0
 
 BUTTON
-107
-121
-171
-154
+4
+10
+187
+43
 NIL
 Setup
 NIL
@@ -313,10 +406,10 @@ NIL
 1
 
 BUTTON
-93
-366
-176
-399
+4
+50
+188
+83
 NIL
 exec.repl
 T
@@ -330,21 +423,21 @@ NIL
 1
 
 INPUTBOX
-890
-332
-1045
-392
+928
+476
+1012
+536
 port-num
-7458
+2222
 1
 0
 Number
 
 BUTTON
-889
-397
-964
-430
+929
+544
+1012
+577
 connect
 print (word \"connecting on \" port-num)\nsock2:connect-local port-num\nprint \"socket connected\"
 NIL
@@ -358,10 +451,10 @@ NIL
 1
 
 BUTTON
-973
-397
-1045
-430
+931
+584
+1013
+617
 NIL
 flush-io
 T
@@ -374,22 +467,11 @@ NIL
 NIL
 1
 
-MONITOR
-373
-598
-733
-643
-command stack
-cmd-stack
-17
-1
-11
-
 OUTPUT
-888
-21
-1158
-298
+772
+10
+1154
+443
 11
 
 @#$#@#$#@
@@ -503,6 +585,20 @@ Polygon -7500403 true true 200 193 197 249 179 249 177 196 166 187 140 189 93 19
 Polygon -7500403 true true 73 210 86 251 62 249 48 208
 Polygon -7500403 true true 25 114 16 195 9 204 23 213 25 200 39 123
 
+crate
+false
+0
+Rectangle -7500403 true true 45 45 255 255
+Rectangle -16777216 false false 45 45 255 255
+Rectangle -16777216 false false 60 60 240 240
+Line -16777216 false 180 60 180 240
+Line -16777216 false 150 60 150 240
+Line -16777216 false 120 60 120 240
+Line -16777216 false 210 60 210 240
+Line -16777216 false 90 60 90 240
+Polygon -7500403 true true 75 240 240 75 240 60 225 60 60 225 60 240
+Polygon -16777216 false false 60 225 60 240 75 240 240 75 240 60 225 60
+
 cylinder
 false
 0
@@ -595,6 +691,34 @@ true
 0
 Line -7500403 true 150 0 150 150
 
+logs
+false
+0
+Polygon -7500403 true true 15 241 75 271 89 245 135 271 150 246 195 271 285 121 235 96 255 61 195 31 181 55 135 31 45 181 49 183
+Circle -1 true false 132 222 66
+Circle -16777216 false false 132 222 66
+Circle -1 true false 72 222 66
+Circle -1 true false 102 162 66
+Circle -7500403 true true 222 72 66
+Circle -7500403 true true 192 12 66
+Circle -7500403 true true 132 12 66
+Circle -16777216 false false 102 162 66
+Circle -16777216 false false 72 222 66
+Circle -1 true false 12 222 66
+Circle -16777216 false false 30 240 30
+Circle -1 true false 42 162 66
+Circle -16777216 false false 42 162 66
+Line -16777216 false 195 30 105 180
+Line -16777216 false 255 60 165 210
+Circle -16777216 false false 12 222 66
+Circle -16777216 false false 90 240 30
+Circle -16777216 false false 150 240 30
+Circle -16777216 false false 120 180 30
+Circle -16777216 false false 60 180 30
+Line -16777216 false 195 270 285 120
+Line -16777216 false 15 240 45 180
+Line -16777216 false 45 180 135 30
+
 pentagon
 false
 0
@@ -608,6 +732,89 @@ Polygon -7500403 true true 105 90 120 195 90 285 105 300 135 300 150 225 165 300
 Rectangle -7500403 true true 127 79 172 94
 Polygon -7500403 true true 195 90 240 150 225 180 165 105
 Polygon -7500403 true true 105 90 60 150 75 180 135 105
+
+person construction
+false
+0
+Rectangle -7500403 true true 123 76 176 95
+Polygon -1 true false 105 90 60 195 90 210 115 162 184 163 210 210 240 195 195 90
+Polygon -13345367 true false 180 195 120 195 90 285 105 300 135 300 150 225 165 300 195 300 210 285
+Circle -7500403 true true 110 5 80
+Line -16777216 false 148 143 150 196
+Rectangle -16777216 true false 116 186 182 198
+Circle -1 true false 152 143 9
+Circle -1 true false 152 166 9
+Rectangle -16777216 true false 179 164 183 186
+Polygon -955883 true false 180 90 195 90 195 165 195 195 150 195 150 120 180 90
+Polygon -955883 true false 120 90 105 90 105 165 105 195 150 195 150 120 120 90
+Rectangle -16777216 true false 135 114 150 120
+Rectangle -16777216 true false 135 144 150 150
+Rectangle -16777216 true false 135 174 150 180
+Polygon -955883 true false 105 42 111 16 128 2 149 0 178 6 190 18 192 28 220 29 216 34 201 39 167 35
+Polygon -6459832 true false 54 253 54 238 219 73 227 78
+Polygon -16777216 true false 15 285 15 255 30 225 45 225 75 255 75 270 45 285
+
+person farmer
+false
+0
+Polygon -7500403 true true 105 90 120 195 90 285 105 300 135 300 150 225 165 300 195 300 210 285 180 195 195 90
+Polygon -1 true false 60 195 90 210 114 154 120 195 180 195 187 157 210 210 240 195 195 90 165 90 150 105 150 150 135 90 105 90
+Circle -7500403 true true 110 5 80
+Rectangle -7500403 true true 127 79 172 94
+Polygon -13345367 true false 120 90 120 180 120 195 90 285 105 300 135 300 150 225 165 300 195 300 210 285 180 195 180 90 172 89 165 135 135 135 127 90
+Polygon -6459832 true false 116 4 113 21 71 33 71 40 109 48 117 34 144 27 180 26 188 36 224 23 222 14 178 16 167 0
+Line -16777216 false 225 90 270 90
+Line -16777216 false 225 15 225 90
+Line -16777216 false 270 15 270 90
+Line -16777216 false 247 15 247 90
+Rectangle -6459832 true false 240 90 255 300
+
+person lumberjack
+false
+0
+Polygon -7500403 true true 105 90 120 195 90 285 105 300 135 300 150 225 165 300 195 300 210 285 180 195 195 90
+Polygon -2674135 true false 60 196 90 211 114 155 120 196 180 196 187 158 210 211 240 196 195 91 165 91 150 106 150 135 135 91 105 91
+Circle -7500403 true true 110 5 80
+Rectangle -7500403 true true 127 79 172 94
+Polygon -6459832 true false 174 90 181 90 180 195 165 195
+Polygon -13345367 true false 180 195 120 195 90 285 105 300 135 300 150 225 165 300 195 300 210 285
+Polygon -6459832 true false 126 90 119 90 120 195 135 195
+Rectangle -6459832 true false 45 180 255 195
+Polygon -16777216 true false 255 165 255 195 240 225 255 240 285 240 300 225 285 195 285 165
+Line -16777216 false 135 165 165 165
+Line -16777216 false 135 135 165 135
+Line -16777216 false 90 135 120 135
+Line -16777216 false 105 120 120 120
+Line -16777216 false 180 120 195 120
+Line -16777216 false 180 135 210 135
+Line -16777216 false 90 150 105 165
+Line -16777216 false 225 165 210 180
+Line -16777216 false 75 165 90 180
+Line -16777216 false 210 150 195 165
+Line -16777216 false 180 105 210 180
+Line -16777216 false 120 105 90 180
+Line -16777216 false 150 135 150 165
+Polygon -2674135 true false 100 30 104 44 189 24 185 10 173 10 166 1 138 -1 111 3 109 28
+
+person service
+false
+0
+Polygon -7500403 true true 180 195 120 195 90 285 105 300 135 300 150 225 165 300 195 300 210 285
+Polygon -1 true false 120 90 105 90 60 195 90 210 120 150 120 195 180 195 180 150 210 210 240 195 195 90 180 90 165 105 150 165 135 105 120 90
+Polygon -1 true false 123 90 149 141 177 90
+Rectangle -7500403 true true 123 76 176 92
+Circle -7500403 true true 110 5 80
+Line -13345367 false 121 90 194 90
+Line -16777216 false 148 143 150 196
+Rectangle -16777216 true false 116 186 182 198
+Circle -1 true false 152 143 9
+Circle -1 true false 152 166 9
+Rectangle -16777216 true false 179 164 183 186
+Polygon -2674135 true false 180 90 195 90 183 160 180 195 150 195 150 135 180 90
+Polygon -2674135 true false 120 90 105 90 114 161 120 195 150 195 150 135 120 90
+Polygon -2674135 true false 155 91 128 77 128 101
+Rectangle -16777216 true false 118 129 141 140
+Polygon -2674135 true false 145 91 172 77 172 101
 
 plant
 false
@@ -646,7 +853,7 @@ square 2
 false
 0
 Rectangle -7500403 true true 30 30 270 270
-Rectangle -16777216 true false 60 60 240 240
+Rectangle -16777216 true false 45 60 225 240
 
 star
 false
@@ -661,6 +868,17 @@ Circle -16777216 true false 30 30 240
 Circle -7500403 true true 60 60 180
 Circle -16777216 true false 90 90 120
 Circle -7500403 true true 120 120 60
+
+tile water
+false
+0
+Rectangle -7500403 true true -1 0 299 300
+Polygon -1 true false 105 259 180 290 212 299 168 271 103 255 32 221 1 216 35 234
+Polygon -1 true false 300 161 248 127 195 107 245 141 300 167
+Polygon -1 true false 0 157 45 181 79 194 45 166 0 151
+Polygon -1 true false 179 42 105 12 60 0 120 30 180 45 254 77 299 93 254 63
+Polygon -1 true false 99 91 50 71 0 57 51 81 165 135
+Polygon -1 true false 194 224 258 254 295 261 211 221 144 199
 
 tree
 false
@@ -735,7 +953,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.2.1
+NetLogo 5.0.4
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
