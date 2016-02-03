@@ -3,10 +3,10 @@ globals
 [
   world.size  ;;square world dictated by clojure side
   world.baseloc
-  
+
   cmd-stack        ; stack (kinda) of commands for execution
   cmd-rules        ; rules for cmd expansion & execution
-  
+
   agent-map
   output-indent
 ]
@@ -29,9 +29,9 @@ bases-own [name]
 
 to globals.setup
   set-patch-size 25
-  
+
   set cmd-stack ""
-  
+
 end
 
 ;------------------------------------
@@ -73,7 +73,7 @@ to world.create-agent [#id #tile #atype]
       set name #id
       set shape "person lumberjack"
       set color 29
-  
+
       setxy get-tile-x #tile get-tile-y #tile
       set #a self  ;; for animation below
     ]
@@ -98,7 +98,7 @@ to world.create-agent [#id #tile #atype]
         set #a self  ;; for animation below
       ]
     ]
-  
+
   ]
   ask #a [st]
 end
@@ -115,11 +115,11 @@ to world.create-resource [#id #loc]
 end
 
 
-to world.create-base [#id #loc] 
+to world.create-base [#id #loc]
   create-bases 1
   [
     set name #id
-    set shape "house"
+    set shape "house ranch"
     set color 26
     set size 1.3
     setxy get-tile-x #loc get-tile-y #loc
@@ -153,18 +153,18 @@ end
 to agent.move-to [#dest #agent]
   let x (get-tile-x #dest)
   let y (get-tile-y #dest)
-  
+
   let agentPatch 0
   ask patches with [pxcor = x and pycor = y][
     let destPatch self
-    print destPatch
+
     loop [
       ask turtles with [name = #agent] [
         set agentPatch patch-here
         facexy x y
-        forward 1 
+        forward 1
       ]
-      
+      wait 0.1
       if agentPatch = destPatch [stop]
     ]
   ]
@@ -173,10 +173,10 @@ end
 to agent.pickup [#res #agent]
   ask resources with [name = #res] [
     let res self
-    
+
     ask turtles with [name = #agent] [
-      
-      create-link-to res  
+
+      create-link-to res
       [ tie
         hide-link
       ]
@@ -187,16 +187,19 @@ end
 to agent.drop [#res #agent #loc]
   ask resources with [name = #res] [
     let res self
-    
+
     ask turtles with [name = #agent] [
       ask one-of links [die]
     ]
-    
+
     setxy (get-tile-x #loc) (get-tile-y #loc)
   ]
 end
 
 to agent.prepare [#res #agent]
+
+   wait 0.5
+
    ask resources with [name = #res] [
      set shape "logs"
      set color brown
@@ -205,7 +208,7 @@ to agent.prepare [#res #agent]
 end
 
 to agent.store [#res #agent #base-id]
-  
+   wait 0.5
    agent.drop #res #agent #base-id
    ask resources with [name = #res] [
      set shape "crate"
@@ -216,20 +219,22 @@ end
 
 
 to agent.build [#agent #tile]
+  wait 0.5
+
   let x (get-tile-x #tile)
   let y (get-tile-y #tile)
-  
+
     ask turtles with [name = #agent] [
       ask out-link-neighbors [die]
-      
-      
+
+
       ask patches with [pxcor = x and pycor = y]
       [
         set pcolor 35
       ]
     ]
-    
-  
+
+
 end
 
 ;======================================================
@@ -328,17 +333,17 @@ end
 
 to-report get-tile-x [#t]
   let tileIndex read-from-string substring #t 1 length #t
-  
+
   let x tileIndex mod world.size
-  
+
   report x
 end
 
 to-report get-tile-y [#t]
   let tileIndex read-from-string substring #t 1 length #t
-  
+
   let y floor (tileIndex / world.size)
-  
+
   report  y
 end
 
@@ -362,10 +367,10 @@ to flush-io
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-172
-13
-607
-469
+139
+10
+574
+466
 -1
 -1
 25.0
@@ -391,7 +396,7 @@ ticks
 BUTTON
 4
 10
-187
+132
 43
 NIL
 Setup
@@ -408,7 +413,7 @@ NIL
 BUTTON
 4
 50
-188
+132
 83
 NIL
 exec.repl
@@ -423,10 +428,10 @@ NIL
 1
 
 INPUTBOX
-928
-476
-1012
-536
+5
+95
+132
+155
 port-num
 2222
 1
@@ -434,10 +439,10 @@ port-num
 Number
 
 BUTTON
-929
-544
-1012
-577
+5
+159
+132
+192
 connect
 print (word \"connecting on \" port-num)\nsock2:connect-local port-num\nprint \"socket connected\"
 NIL
@@ -451,10 +456,10 @@ NIL
 1
 
 BUTTON
-931
-584
-1013
-617
+5
+199
+132
+232
 NIL
 flush-io
 T
@@ -468,10 +473,10 @@ NIL
 1
 
 OUTPUT
-772
+581
 10
-1154
-443
+952
+466
 11
 
 @#$#@#$#@
@@ -674,6 +679,21 @@ Rectangle -7500403 true true 45 120 255 285
 Rectangle -16777216 true false 120 210 180 285
 Polygon -7500403 true true 15 120 150 15 285 120
 Line -16777216 false 30 120 270 120
+
+house ranch
+false
+0
+Rectangle -7500403 true true 270 120 285 255
+Rectangle -7500403 true true 15 180 270 255
+Polygon -7500403 true true 0 180 300 180 240 135 60 135 0 180
+Rectangle -16777216 true false 120 195 180 255
+Line -7500403 true 150 195 150 255
+Rectangle -16777216 true false 45 195 105 240
+Rectangle -16777216 true false 195 195 255 240
+Line -7500403 true 75 195 75 240
+Line -7500403 true 225 195 225 240
+Line -16777216 false 270 180 270 255
+Line -16777216 false 0 180 300 180
 
 leaf
 false
@@ -953,7 +973,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.0.4
+NetLogo 5.2.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

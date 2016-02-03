@@ -6,21 +6,22 @@
 (def world
   '#{
      ;World locations
-     (isa b1 base) (at b1 t1)
+     (isa b1 base) (at b1 t40)
      ;(isa river location) (at river t8) (at river t9) (at river t10) (at river t11)
      ;Actors
-     (isa h1 actor) (at h1 t2) (holds h1 :nil) (handles h1 unprepared)
-     (isa c1 actor) (at c1 t3) (holds c1 :nil) (handles c1 prepared)
-     (isa e1 actor) (at e1 t64) (holds e1 :nil) (handles e1 stored)
+     (isa h1 actor) (at h1 t56) (holds h1 :nil) (handles h1 unprepared)
+     (isa c1 actor) (at c1 t55) (holds c1 :nil) (handles c1 prepared)
+     (isa e1 actor) (at e1 t57) (holds e1 :nil) (handles e1 stored)
 
 
-     (isa l1 lake)  (at l1 t34)
+     (isa l1 lake)  (at l1 t238)
+     (isa l2 lake)  (at l2 t239)
 
      ;(isa e1 actor) (at e1 base)
      ;Resources
-     (isa r1 resource) (at r1 t99) (unprepared r1)
-     (isa r2 resource) (at r2 t71) (prepared r2)
-     (isa r3 resource) (at r3 t20) (prepared r3)
+     (isa r1 resource) (at r1 t213) (unprepared r1)
+     (isa r2 resource) (at r2 t217) (unprepared r2)
+     (isa r3 resource) (at r3 t199) (unprepared r3)
 
      ;(blocked t10)
      }
@@ -126,13 +127,13 @@
     store
     {:name store
      :achieves (stored ?r)
-     :when ((handles ?actor prepared))
-     :post ((prepared ?r) (holds ?actor ?r) (at ?actor t1)) ;;Order of post conditions threw raise condition
+     :when ((handles ?actor prepared) (isa ?base base) (at ?base ?t))
+     :post ((prepared ?r) (holds ?actor ?r) (at ?actor ?t)) ;;Order of post conditions threw raise condition
      :pre ((isa ?actor actor) (prepared ?r))
      :del ((prepared ?r) (holds ?actor ?r))
-     :add ((stored ?r) (holds ?actor :nil) (at ?r t1))
-     :cmd ((store ?r ?actor t1))
-     :txt (?actor stores ?r at t1)
+     :add ((stored ?r) (holds ?actor :nil) (at ?r ?t))
+     :cmd ((store ?r ?actor ?t))
+     :txt (?actor stores ?r at ?t)
      }
      ; (isa l1 lake)  (at l1 t34)
     build
@@ -256,7 +257,7 @@
   (let [cmd-str (nlogo-translate-setup (into '() cmd))]
     ;(ui-out :comm 'NL==> cmd-list "   \t" cmd-str)
     ; (ui-out :comm "     " cmd-str)
-    (println  cmd-str)
+    ;(println  cmd-str)
     (nlogo-send cmd-str)
     ))
 
@@ -270,10 +271,10 @@
   (nlogo-send "setup")
   (nlogo-send (str "world.set-size "  grid-size))
 
-  (print "sending setup commands")
+  ;(print "sending setup commands")
   (nlogo-send-setups (mfor* ['([isa ?a ?ent] [at ?a ?l]) world] [(? ent) (? a) (? l)]))
 
-  (print "sending planner commands")
+  ;(print "sending planner commands")
   (nlogo-send-cmds (:cmds (planner wstate goal generic-ops)))
   )
 
