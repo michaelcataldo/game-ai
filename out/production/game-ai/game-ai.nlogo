@@ -9,25 +9,6 @@ globals
 
   agent-map
   output-indent
-  
-  ;;A star globals
-  open
-  closed
-  optimal-path
-]
-
-patches-own 
-[ 
-  parent-patch ; patch's predecessor
-  f ; the value of knowledge plus heuristic cost function f()
-  g ; the value of knowledge cost function g()
-  h ; the value of heuristic cost function h()
-]
-
-turtles-own
-[
-  path ; the optimal path from source to destination
-  current-path ; part of the path that is left to be traversed 
 ]
 
 breed [harvesters harvester]
@@ -46,9 +27,23 @@ breed [bases base]
 bases-own [name]
 
 
+to globals.setup
+  set-patch-size 25
+
+  set cmd-stack ""
+
+end
+
 ;------------------------------------
 ; startup & setup
 ;------------------------------------
+
+
+to startup
+  globals.setup
+  setup
+end
+
 
 to setup
   clear-all
@@ -56,13 +51,6 @@ to setup
   reset-ticks
 end
 
-to globals.setup
-  set-patch-size 25
-end
-
-to patches.setup
-  ask patches [ set pcolor green]
-end
 
 
 ;------------------------------------
@@ -77,13 +65,17 @@ to world.set-size [#size]
 end
 
 to world.create-agent [#id #tile #atype]
-  ifelse #atype = "h" 
-  [ create-harvesters 1
+  let #a 0
+  ifelse #atype = "h"
+  [
+    create-harvesters 1
     [
       set name #id
       set shape "person lumberjack"
       set color 29
+
       setxy get-tile-x #tile get-tile-y #tile
+      set #a self  ;; for animation below
     ]
   ]
   [ ifelse #atype = "c"
@@ -93,18 +85,22 @@ to world.create-agent [#id #tile #atype]
         set shape "person service"
         set color 29
         setxy get-tile-x #tile get-tile-y #tile
+        set #a self  ;; for animation below
       ]
     ]
-    [ create-engineers 1
+    [
+      create-engineers 1
       [
         set name #id
         set shape "person construction"
         set color 29
         setxy get-tile-x #tile get-tile-y #tile
+        set #a self  ;; for animation below
       ]
     ]
 
   ]
+  ask #a [st]
 end
 
 to world.create-resource [#id #loc]
@@ -125,7 +121,7 @@ to world.create-base [#id #loc]
     set name #id
     set shape "house ranch"
     set color 26
-    set size 1.5
+    set size 1.3
     setxy get-tile-x #loc get-tile-y #loc
   ]
 end
@@ -137,46 +133,54 @@ to world.create-lake [#id #loc]
     [
       set pcolor blue
     ]
-  
+
+end
+
+;------------------------------------
+; patches
+;------------------------------------
+
+to patches.setup
+  ask patches [ set pcolor green]
 end
 
 ;------------------------------------
 ; agents
 ;------------------------------------
 
+
 ;;move agent to passed destination tile id
 to agent.move-to [#dest #agent]
-   let x (get-tile-x #dest)
-   let y (get-tile-y #dest)
+  let x (get-tile-x #dest)
+  let y (get-tile-y #dest)
 
-   let sourcePatch 0
-   let destPatch 0
-   let agent 0
-   
-   ask patches with [pxcor = x and pycor = y][
-    set destPatch self
-   ]
-   
-   ask turtles with [name = #agent] [
-     set sourcePatch patch-here
-     set agent self
-   ]
-   
-   find-shortest-path-to-destination agent sourcePatch destPatch
+  let agentPatch 0
+  ask patches with [pxcor = x and pycor = y][
+    let destPatch self
+
+    loop [
+      ask turtles with [name = #agent] [
+        set agentPatch patch-here
+        facexy x y
+        forward 1
+      ]
+      wait 0.1
+      if agentPatch = destPatch [stop]
+    ]
+  ]
 end
 
 to agent.pickup [#res #agent]
-  ask resources with [name = #res] 
-  [
+  ask resources with [name = #res] [
     let res self
-    ask turtles with [name = #agent] 
-    [
-      
+
+    ask turtles with [name = #agent] [
+
       create-link-to res
       [ tie
         hide-link
       ]
-    ] 
+    ]
   ]
 end
 
@@ -193,7 +197,9 @@ to agent.drop [#res #agent #loc]
 end
 
 to agent.prepare [#res #agent]
-   wait 1
+
+   wait 0.5
+
    ask resources with [name = #res] [
      set shape "logs"
      set color brown
@@ -214,31 +220,130 @@ end
 
 to agent.build [#agent #tile]
   wait 0.5
+
   let x (get-tile-x #tile)
   let y (get-tile-y #tile)
 
     ask turtles with [name = #agent] [
       ask out-link-neighbors [die]
 
-      ask patches with [pxcor = x and pycor = y] [
+
+      ask patches with [pxcor = x and pycor = y]
+      [
         set pcolor 35
       ]
     ]
+
+
+end
+
+;======================================================
+; CMD-STACK manipulation
+;======================================================
+
+
+to-report cmd-stack.pop
+  let #dat (first cmd-stack)
+  set cmd-stack (but-first cmd-stack)
+  report #dat
+end
+
+
+to cmd-stack.push [#dat]
+  set cmd-stack (word #dat cmd-stack)
+end
+
+
+to cmd-stack.queue [#dat]
+  set cmd-stack (word cmd-stack #dat)
+end
+
+
+to cmd-stack.run
+  while [not empty? cmd-stack]
+  [ cmd-stack.run1 ]
+end
+
+
+to cmd-stack.run1
+  let #m cmd-stack.pop
+  ; print (word #m " => " cmd-stack)
+  ifelse (table:has-key? cmd-rules #m)
+  [ run (table:get cmd-rules #m)  ]
+  [ ;; unknown command in use
+    print (word "unknown command: " #m)
+  ]
+  tick
+end
+
+
+to-report gen [#str #n]
+  ; print (list "gen:" #str #n)
+  set #n (int #n)
+  ifelse (#n = 0)
+  [ report "" ]
+  [ report reduce word n-values #n [#str] ]
 end
 
 ;------------------------------------
 ; utils
 ;------------------------------------
 
+
+to assert [#x #str]
+  if not #x
+  [ error (word "assert fails: " #str) ]
+end
+
+
+to inform [#i #m]
+  let #ind-inc 2
+  ifelse (#i = 0)   [inform- #m]
+  [ ifelse (#i > 0)
+    [ if (output-indent = 0) [output-print ""]
+      inform- #m
+      set output-indent (output-indent + #ind-inc)
+    ]
+    [ ; (#i < 0)
+      set output-indent (output-indent - #ind-inc)
+      inform- #m
+    ]
+  ]
+end
+
+
+to inform- [#m]
+  repeat output-indent [output-type " "]
+  foreach #m
+  [ output-type ?
+    output-type " "
+  ]
+  output-print ""
+end
+
+
+to block-flash [#b]
+  repeat 5
+  [ tick
+    ask #b [ ht ]
+    tick
+    ask #b [ st ]
+  ]
+end
+
 to-report get-tile-x [#t]
   let tileIndex read-from-string substring #t 1 length #t
+
   let x tileIndex mod world.size
+
   report x
 end
 
 to-report get-tile-y [#t]
   let tileIndex read-from-string substring #t 1 length #t
+
   let y floor (tileIndex / world.size)
+
   report  y
 end
 
@@ -248,8 +353,10 @@ to exec.repl
   let cmd-str sock2:read
   output-print (word "received: " cmd-str)
   run cmd-str
+  output-print "-done"
   wait 0.1
   tick
+  output-print "-finally"
 end
 
 to flush-io
@@ -258,145 +365,6 @@ to flush-io
   if (cmd-str = "stop") [stop]
   tick
 end
-
-
-
-;------------------------------------
-; A* Pathfinding
-;------------------------------------
-
-; call the path finding procedure, update the turtle (agent) variables, output text box
-; and make the agent move to the destination via the path found
-to find-shortest-path-to-destination [agent source destination]
-  reset-ticks
-  ask agent 
-  [
-    move-to source
-    set path find-a-path source destination
-    set optimal-path path
-    set current-path path
-  ]
-  move agent
-end
-
-; the actual implementation of the A* path finding algorithm
-; it takes the source and destination patches as inputs
-; and reports the optimal path if one exists between them as output
-to-report find-a-path [ source-patch destination-patch] 
-  
-  ; initialize all variables to default values
-  let search-done? false
-  let search-path []
-  let current-patch 0
-  set open []
-  set closed []  
-  
-  ; add source patch in the open list
-  set open lput source-patch open
-  
-  ; loop until we reach the destination or the open list becomes empty
-  while [ search-done? != true]
-  [    
-    ifelse length open != 0
-    [
-      ; sort the patches in open list in increasing order of their f() values
-      set open sort-by [[f] of ?1 < [f] of ?2] open
-      
-      ; take the first patch in the open list
-      ; as the current patch (which is currently being explored (n))
-      ; and remove it from the open list
-      set current-patch item 0 open 
-      set open remove-item 0 open
-      
-      ; add the current patch to the closed list
-      set closed lput current-patch closed
-      
-      ; explore the Von Neumann (left, right, top and bottom) neighbors of the current patch
-      ask current-patch
-      [         
-        ; if any of the neighbors is the destination stop the search process
-        ifelse any? neighbors4 with [ (pxcor = [ pxcor ] of destination-patch) and (pycor = [pycor] of destination-patch)]
-        [
-          set search-done? true
-        ]
-        [
-          ; the neighbors should not be obstacles or already explored patches (part of the closed list)          
-          ask neighbors4 with [ pcolor != blue and (not member? self closed) and (self != parent-patch) ]     
-          [
-            ; the neighbors to be explored should also not be the source or 
-            ; destination patches or already a part of the open list (unexplored patches list)
-            if not member? self open and self != source-patch and self != destination-patch
-            [
-              ; add the eligible patch to the open list
-              set open lput self open
-              
-              ; update the path finding variables of the eligible patch
-              set parent-patch current-patch 
-              set g [g] of parent-patch  + 1
-              set h distance destination-patch
-              set f (g + h)
-            ]
-          ]
-        ]
-      ]
-    ]
-    [
-      ; if a path is not found (search is incomplete) and the open list is exhausted 
-      ; display a user message and report an empty search path list.
-      output-print( "A path from the source to the destination does not exist." )
-      report []
-    ]
-  ]
-  
-  ; if a path is found (search completed) add the current patch 
-  ; (node adjacent to the destination) to the search path.
-  set search-path lput current-patch search-path
-  
-  ; trace the search path from the current patch 
-  ; all the way to the source patch using the parent patch
-  ; variable which was set during the search for every patch that was explored
-  let temp first search-path
-  while [ temp != source-patch ]
-  [
-    set search-path lput [parent-patch] of temp search-path 
-    set temp [parent-patch] of temp
-  ]
-  
-  ; add the destination patch to the front of the search path
-  set search-path fput destination-patch search-path
-  
-  ; reverse the search path so that it starts from a patch adjacent to the
-  ; source patch and ends at the destination patch
-  set search-path reverse search-path  
-
-  ; report the search path
-  report search-path
-end
-
-
-to move [agent]
- ask agent
-  [
-    while [length current-path != 0]
-    [
-      go-to-next-patch-in-current-path
-      wait 0.1
-    ]
-  ]    
-end
-
-to go-to-next-patch-in-current-path  
-  face first current-path
-  repeat 10
-  [
-    fd 0.1
-  ]
-  move-to first current-path
-  set current-path remove-item 0 current-path
-end
-
-
-
 @#$#@#$#@
 GRAPHICS-WINDOW
 139
@@ -465,7 +433,7 @@ INPUTBOX
 132
 155
 port-num
-2016
+2222
 1
 0
 Number
@@ -1005,7 +973,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.0.4
+NetLogo 5.2.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

@@ -106,27 +106,27 @@
 ;      )))
 
 
-(defn ui-broadcast [stuff]
-  (if-not win-mode (apply println stuff)
-    (doseq [io (keys @uiwin)]
-      (ui-out io stuff))
-    ))
+;(defn ui-broadcast [stuff]
+;  (if-not win-mode (apply println stuff)
+;    (doseq [io (keys @uiwin)]
+;      (ui-out io stuff))
+;    ))
 
 
 
-(defn ui-set
-  [& r]
-  (if-not win-mode (apply println r)
-    (let [[win & r] r]
-      (.setText (win @uiwin) (write r :stream nil))
-      )))
-
-
-(defn clear-ui []
-  (if win-mode
-    (doseq [io (keys @uiwin)]
-      (.setText (io @uiwin) ""))
-    ))
+;(defn ui-set
+;  [& r]
+;  (if-not win-mode (apply println r)
+;    (let [[win & r] r]
+;      (.setText (win @uiwin) (write r :stream nil))
+;      )))
+;
+;
+;(defn clear-ui []
+;  (if win-mode
+;    (doseq [io (keys @uiwin)]
+;      (.setText (io @uiwin) ""))
+;    ))
 
 
 
@@ -143,7 +143,7 @@
 
 ;___ active socket is used as a global _____________
 
-(def shrdlu-comms false)
+(def socket false)
 
 (defn startup-server
   [port]
@@ -189,12 +189,12 @@
   ;(println '** (and shrdlu-comms true) txt)
   (if socket (socket-write socket txt)))
 
-(defn nlogo-read []
-  (if shrdlu-comms (socket-read shrdlu-comms)))
-
-(defn nlogo-io-waiting []
-  (and shrdlu-comms (socket-input-waiting shrdlu-comms)))
-
+;(defn nlogo-read []
+;  (if shrdlu-comms (socket-read shrdlu-comms)))
+;
+;(defn nlogo-io-waiting []
+;  (and shrdlu-comms (socket-input-waiting shrdlu-comms)))
+;
 
 (declare nlogo-translate-cmd)
 
