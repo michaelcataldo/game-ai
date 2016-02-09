@@ -3,95 +3,58 @@
 ;constant grid size
 (def grid-size 16)
 
+(defn get-hotspots [wstate]
+  (sort-by #(nth % 2) (mfor* ['((isa ?bh bhs) (on ?bh ?t)) wstate ] `((~'on ~'bridge ~(? t)))))
+  )
+
+(defn get-hotspots-in-build []
+  (assoc generic-ops :movetogoal (assoc (:movetogoal generic-ops) :post (concat (:post (:movetogoal generic-ops)) (get-hotspots wstate))))
+  )
+
 (def world
   '#{
      ;World locations
      (isa b1 base) (at b1 t130)
-     ;(isa river location) (at river t8) (at river t9) (at river t10) (at river t11)
+
      ;Actors
      (isa h1 actor) (at h1 t56) (holds h1 :nil) (handles h1 unprepared)
      (isa c1 actor) (at c1 t55) (holds c1 :nil) (handles c1 prepared)
      (isa e1 actor) (at e1 t57) (holds e1 :nil) (handles e1 stored)
 
-    ;;Bridge Hotspots
-     (isa bh bhs) (on bh t124)
-     (isa bh2 bhs)(on bh2 t125)
+      ;;Bridge Hotspots
+     (isa bh1 bhs) (on bh1 t124)
+     (isa bh3 bhs) (on bh3 t125)
+     (isa bh2 bhs) (on bh2 t126)
 
+      ;;Goal Location
+     (goal t127)
 
-    ;;Goal Location
-     (goal t126)
+      ;;Lake tiles
+     (isa l0 lake) (at l0 t12)      (isa l17 lake) (at l17 t13)     (isa l34 lake) (at l34 t14)
+     (isa l1 lake) (at l1 t28)      (isa l18 lake) (at l18 t29)     (isa l35 lake) (at l35 t30)
+     (isa l2 lake) (at l2 t44)      (isa l19 lake) (at l19 t45)     (isa l36 lake) (at l36 t46)
+     (isa l3 lake) (at l3 t60)      (isa l20 lake) (at l20 t61)     (isa l37 lake) (at l37 t62)
+     (isa l4 lake) (at l4 t76)      (isa l21 lake) (at l21 t77)     (isa l38 lake) (at l38 t78)
+     (isa l5 lake) (at l5 t92)      (isa l22 lake) (at l22 t93)     (isa l39 lake) (at l39 t94)
+     (isa l6 lake) (at l6 t108)     (isa l23 lake) (at l23 t109)    (isa l40 lake) (at l40 t110)
+     (isa l7 lake) (at l7 t124)     (isa l24 lake) (at l24 t125)    (isa l41 lake) (at l41 t126)
+     (isa l8 lake) (at l8 t140)     (isa l25 lake) (at l25 t141)    (isa l42 lake) (at l42 t142)
+     (isa l9 lake) (at l9 t156)     (isa l26 lake) (at l26 t157)    (isa l43 lake) (at l43 t158)
+     (isa l10 lake) (at l10 t172)   (isa l27 lake) (at l27 t173)    (isa l44 lake) (at l44 t174)
+     (isa l11 lake) (at l11 t188)   (isa l28 lake) (at l28 t189)    (isa l45 lake) (at l45 t190)
+     (isa l12 lake) (at l12 t204)   (isa l29 lake) (at l29 t205)    (isa l46 lake) (at l46 t206)
+     (isa l13 lake) (at l13 t220)   (isa l30 lake) (at l30 t221)    (isa l47 lake) (at l47 t222)
+     (isa l14 lake) (at l14 t236)   (isa l31 lake) (at l31 t237)    (isa l48 lake) (at l48 t238)
+     (isa l15 lake) (at l15 t252)   (isa l32 lake) (at l32 t253)    (isa l49 lake) (at l49 t254)
+     (isa l16 lake) (at l16 t268)   (isa l33 lake) (at l33 t269)    (isa l50 lake) (at l50 t270)
 
-
-
-
-
-     (isa l3 lake)  (at l3 t12)
-     (isa l4 lake)  (at l4 t28)
-     (isa l5 lake)  (at l5 t44)
-     (isa l6 lake)  (at l6 t60)
-     (isa l7 lake)  (at l7 t76)
-     (isa l8 lake)  (at l8 t92)
-     (isa l9 lake)  (at l9 t108)
-     (isa l10 lake)  (at l10 t124)
-     (isa l11 lake)  (at l11 t140)
-     (isa l12 lake)  (at l12 t156)
-     (isa l13 lake)  (at l13 t172)
-     (isa l14 lake)  (at l14 t188)
-     (isa l15 lake)  (at l15 t204)
-     (isa l16 lake)  (at l16 t220)
-     (isa l17 lake)  (at l17 t236)
-     (isa l18 lake)  (at l18 t252)
-     (isa l19 lake)  (at l19 t268)
-
-     (isa l20 lake)  (at l20 t13)
-     (isa l21 lake)  (at l21 t29)
-     (isa l22 lake)  (at l22 t45)
-     (isa l23 lake)  (at l23 t61)
-     (isa l24 lake)  (at l24 t77)
-     (isa l25 lake)  (at l25 t93)
-     (isa l26 lake)  (at l26 t109)
-     (isa l27  lake)  (at l27 t125)
-     (isa l28  lake)  (at l28 t141)
-     (isa l29  lake)  (at l29 t157)
-     (isa l30  lake)  (at l30 t173)
-     (isa l31  lake)  (at l31 t189)
-     (isa l32  lake)  (at l32 t205)
-     (isa l33  lake)  (at l33 t221)
-     (isa l34  lake)  (at l34 t237)
-     (isa l35  lake)  (at l35 t253)
-     (isa l36  lake)  (at l36 t269)
-
-
-     ;     (isa l37 lake)  (at l37 t139)
-     ;     (isa l38 lake)  (at l38 t138)
-     ;     (isa l39 lake)  (at l39 t137)
-     ;     (isa l40 lake)  (at l40 t136)
-     ;     (isa l41 lake)  (at l41 t135)
-     ;     (isa l42 lake)  (at l42 t134)
-     ;     (isa l43 lake)  (at l43 t133)
-     ;     (isa l44 lake)  (at l44 t132)
-
-
-
-     ;(isa e1 actor) (at e1 base)
      ;Resources
      (isa r1 resource) (at r1 t116) (unprepared r1)
      (isa r2 resource) (at r2 t117) (unprepared r2)
      (isa r3 resource) (at r3 t118) (unprepared r3)
 
-     ;(blocked t10)
      }
   )
-
-(defn get-actors []
-
-  )
-
-;((create-tile ?id ?x ?y) :=>
-;((create-resource ?id ?t) :=>
-;((create-base ?id ?t) :=> (st
-;((create-agent ?id ?t ?atype)
-;                                  )
 
 (defn nlogo-translate-wstate [wstate]
   ;;actor
@@ -137,7 +100,7 @@
 
 (def generic-ops
   '{
-     moveto
+     :moveto
     {:name moveto
      :achieves (at ?actor ?t2)
      :when ((isa ?actor actor) (isa ?t1 tile) (isa ?t2 tile) (at ?actor ?t1) (:guard (not= (? t1) (? t2))) (:not (goal ?t2)))
@@ -148,18 +111,30 @@
      :cmd ((move-to ?t2 ?actor))
      :txt (?actor moves from ?t1 to ?t2)
      }
-     movetogoal
+;     movetogoal
+     ;     {:name movetogoal
+     ;      :achieves (at ?actor ?t2)
+     ;      :when ((goal ?t2) (isa ?actor actor) (isa ?t1 tile) (isa ?t2 tile) (at ?actor ?t1) (:guard (not= (? t1) (? t2)))
+     ;              (isa ?bhs bhs) (isa ?t3 tile) (on ?bhs ?t3) (isa ?bhs2 bhs) (isa ?t4 tile) (on ?bhs2 ?t4) (:guard (not= (? t3) (? t4))))
+     ;      :post ((on bridge ?t3)(on bridge ?t4))
+     ;      :pre ()
+     ;      :del ((at ?actor ?t1))
+     ;      :add ((at ?actor ?t2))
+     ;      :cmd ((move-to ?t2 ?actor))
+     ;      :txt (?actor moves to goal at ?t2 from ?t1)
+     ;      }
+     :movetogoal
      {:name movetogoal
       :achieves (at ?actor ?t2)
-      :when ((goal ?t2) (isa ?actor actor) (isa ?t1 tile) (isa ?t2 tile) (at ?actor ?t1) (:guard (not= (? t1) (? t2))) (isa ?bhs bhs) (isa ?t3 tile) (on ?bhs ?t3) (isa ?bhs2 bhs) (isa ?t4 tile) (on ?bhs2 ?t4) (:guard (not= (? t3) (? t4))))
-      :post ((on bridge ?t3)(on bridge ?t4))
+      :when ((goal ?t2) (isa ?actor actor) (isa ?t1 tile) (isa ?t2 tile) (at ?actor ?t1) (:guard (not= (? t1) (? t2))))
+      :post (())
       :pre ()
       :del ((at ?actor ?t1))
       :add ((at ?actor ?t2))
       :cmd ((move-to ?t2 ?actor))
       :txt (?actor moves to goal at ?t2 from ?t1)
       }
-    pickup
+    :pickup
     {:name pickup
      :achieves (holds ?actor ?r)
      :when ((at ?r ?t)  (handles ?actor ?rs) (:not(unprepared ?r)))
@@ -170,7 +145,7 @@
      :cmd ((pickup ?r ?actor ?t))
      :txt (?actor picks up ?r from ?t)
      }
-    drop
+    :drop
     {:name drop
      :achieves (at ?r ?t)
      :when ((handles ?actor prepared)) ;;restricted to using prepared instead of ?rs multiple goals should solve
@@ -181,7 +156,7 @@
      :cmd ((drop ?r ?actor ?t))
      :txt (?actor drops ?r on ?t)
      }
-    prepare
+    :prepare
     {:name prepare
      :achieves (prepared ?r)
      :when ((at ?r ?t) (handles ?actor unprepared) (unprepared ?r))
@@ -192,7 +167,7 @@
      :cmd ((prepare ?r ?actor))
      :txt (?actor prepares ?r at ?t)
      }
-    store
+    :store
     {:name store
      :achieves (stored ?r)
      :when ((handles ?actor prepared) (isa ?base base) (at ?base ?t))
@@ -203,7 +178,7 @@
      :cmd ((store ?r ?actor ?t))
      :txt (?actor stores ?r at ?t)
      }
-    build
+    :build
     {:name build
      :achieves (on bridge ?t)
      :when ((isa ?r resource) (handles ?actor stored) (isa ?l lake) (at ?l ?t))
@@ -342,7 +317,8 @@
   (nlogo-send-setups (mfor* ['([isa ?a ?ent] [at ?a ?l]) world] [(? ent) (? a) (? l)]))
 
   ;(print "sending planner commands")
-  (nlogo-send-cmds (:cmds (planner wstate goal generic-ops)))
+  (nlogo-send-cmds (:cmds (planner wstate goal (get-hotspots-in-build))))
+  ;(nlogo-send-cmds (:cmds (planner wstate goal generic-ops)))
   )
 
 ;(defn coord-adjs [c gs]
