@@ -13,6 +13,18 @@
      (isa c1 actor) (at c1 t55) (holds c1 :nil) (handles c1 prepared)
      (isa e1 actor) (at e1 t57) (holds e1 :nil) (handles e1 stored)
 
+    ;;Bridge Hotspots
+     (isa bh bhs) (on bh t124)
+     (isa bh2 bhs)(on bh2 t125)
+
+
+    ;;Goal Location
+     (goal t126)
+
+
+
+
+
      (isa l3 lake)  (at l3 t12)
      (isa l4 lake)  (at l4 t28)
      (isa l5 lake)  (at l5 t44)
@@ -50,22 +62,22 @@
      (isa l36  lake)  (at l36 t269)
 
 
-;     (isa l37 lake)  (at l37 t139)
-;     (isa l38 lake)  (at l38 t138)
-;     (isa l39 lake)  (at l39 t137)
-;     (isa l40 lake)  (at l40 t136)
-;     (isa l41 lake)  (at l41 t135)
-;     (isa l42 lake)  (at l42 t134)
-;     (isa l43 lake)  (at l43 t133)
-;     (isa l44 lake)  (at l44 t132)
+     ;     (isa l37 lake)  (at l37 t139)
+     ;     (isa l38 lake)  (at l38 t138)
+     ;     (isa l39 lake)  (at l39 t137)
+     ;     (isa l40 lake)  (at l40 t136)
+     ;     (isa l41 lake)  (at l41 t135)
+     ;     (isa l42 lake)  (at l42 t134)
+     ;     (isa l43 lake)  (at l43 t133)
+     ;     (isa l44 lake)  (at l44 t132)
 
 
 
      ;(isa e1 actor) (at e1 base)
      ;Resources
-     (isa r1 resource) (at r1 t214) (unprepared r1)
-     (isa r2 resource) (at r2 t82) (unprepared r2)
-     (isa r3 resource) (at r3 t40) (unprepared r3)
+     (isa r1 resource) (at r1 t116) (unprepared r1)
+     (isa r2 resource) (at r2 t117) (unprepared r2)
+     (isa r3 resource) (at r3 t118) (unprepared r3)
 
      ;(blocked t10)
      }
@@ -124,10 +136,11 @@
 (def wstate (world-state grid-size))
 
 (def generic-ops
-  '{moveto
+  '{
+     moveto
     {:name moveto
      :achieves (at ?actor ?t2)
-     :when ((isa ?actor actor) (isa ?t1 tile) (isa ?t2 tile) (at ?actor ?t1) (:guard (not= (? t1) (? t2))) (:not (blocked ?t2)))
+     :when ((isa ?actor actor) (isa ?t1 tile) (isa ?t2 tile) (at ?actor ?t1) (:guard (not= (? t1) (? t2))) (:not (goal ?t2)))
      ;:post (())
      :pre ((at ?actor ?t1))
      :del ((at ?actor ?t1))
@@ -135,6 +148,17 @@
      :cmd ((move-to ?t2 ?actor))
      :txt (?actor moves from ?t1 to ?t2)
      }
+     movetogoal
+     {:name movetogoal
+      :achieves (at ?actor ?t2)
+      :when ((goal ?t2) (isa ?actor actor) (isa ?t1 tile) (isa ?t2 tile) (at ?actor ?t1) (:guard (not= (? t1) (? t2))) (isa ?bhs bhs) (isa ?t3 tile) (on ?bhs ?t3) (isa ?bhs2 bhs) (isa ?t4 tile) (on ?bhs2 ?t4) (:guard (not= (? t3) (? t4))))
+      :post ((on bridge ?t3)(on bridge ?t4))
+      :pre ()
+      :del ((at ?actor ?t1))
+      :add ((at ?actor ?t2))
+      :cmd ((move-to ?t2 ?actor))
+      :txt (?actor moves to goal at ?t2 from ?t1)
+      }
     pickup
     {:name pickup
      :achieves (holds ?actor ?r)
@@ -160,7 +184,7 @@
     prepare
     {:name prepare
      :achieves (prepared ?r)
-     :when ((at ?r ?t) (handles ?actor unprepared))
+     :when ((at ?r ?t) (handles ?actor unprepared) (unprepared ?r))
      :post ((at ?actor ?t))
      :pre ((isa ?actor actor) (unprepared ?r))
      :del ((unprepared ?r))
@@ -179,7 +203,6 @@
      :cmd ((store ?r ?actor ?t))
      :txt (?actor stores ?r at ?t)
      }
-     ; (isa l1 lake)  (at l1 t34)
     build
     {:name build
      :achieves (on bridge ?t)
